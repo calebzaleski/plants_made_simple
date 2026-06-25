@@ -1,11 +1,11 @@
 CREATE TABLE IF NOT EXISTS users (
-    id SERIAL,
+    id SERIAL UNIQUE,
     username VARCHAR(20) PRIMARY KEY,
     nickname VARCHAR(20) NOT NULL,
     firstname VARCHAR(40) NOT NULL,
     lastname VARCHAR(40) NOT NULL,
     password VARCHAR(255) NOT NULL,
-    plants INT NOT NULL,
+    plants INT NOT NULL default 0,
     joined DATE
 );
 
@@ -36,31 +36,4 @@ CREATE TABLE IF NOT EXISTS plants (
     CONSTRAINT plant_owner
     FOREIGN KEY (username)
     REFERENCES users(username)
-);
-
-
-
-INSERT INTO users (username, nickname, firstname, lastname, password, plants, joined)
-VALUES ('user_test', 'nic_test', 'first_test', 'last_test', 'test_passwd', 0, CURRENT_DATE);
-
-INSERT INTO plants (
-    username, plant_id, image_url, date_acquired, date_last_water,
-    date_next_water, health, notes, light_needs, fertilizer_needs,
-    date_last_pot, date_next_pot, plant_name, scientific_name, age
-) VALUES (
-    'user_test',
-    1,
-    'https://my-bucket.s3.amazonaws.com/test.jpg',
-    '2025-01-15',
-    '2026-06-20',
-    '2026-06-27',
-    'test health',
-    'lajgoiwj jfowfeoijwfe knifh kwfeni hew fi wfjniuewfh wiefnj',
-    '3',
-    'Monthly liquid fertilizer',
-    '2025-01-15',
-    '2027-01-15',
-    'plant test',
-    'scientific test',
-    1
 );
