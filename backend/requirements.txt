@@ -3,3 +3,4 @@ sqlalchemy
 psycopg[binary]
 pydantic
 python-dotenv
+bcrypt

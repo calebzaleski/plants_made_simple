@@ -37,7 +37,7 @@ my_url = URL.create(
     drivername="postgresql+psycopg",
     username=user,
     password=password,
-    host = "localhost",
+    host = os.getenv("DB_HOST", "localhost"),
     port=port,
     database = db
 )
