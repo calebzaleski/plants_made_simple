@@ -69,23 +69,23 @@ def test_app():
     logger.info("/test command triggered")
 
 @app.post("/create_user")
-def create_user(user_data: schemas.UserCreate):
+def create_user(data: schemas.UserCreate):
     session = Session()
 
 
     try:
         new_user = models.User(
-            username=user_data.username,
-            nickname=user_data.nickname,
-            firstname=user_data.firstname,
-            lastname=user_data.lastname,
-            password=security.hash_password(user_data.password)
+            username=data.username,
+            nickname=data.nickname,
+            firstname=data.firstname,
+            lastname=data.lastname,
+            password=security.hash_password(data.password)
         )
         session.add(new_user)
         session.commit()
         
-        logger.info(f"Successfully created user: {user_data.username}")
-        return {"success": True, "message": f"User {user_data.username} created!"}
+        logger.info(f"Successfully created user: {data.username}")
+        return {"success": True, "message": f"User {data.username} created!"}
     except IntegrityError as e:
         session.rollback()
         logger.error(f"Failed to create user. prob the same username but = Error: {e}")
@@ -100,29 +100,30 @@ def create_user(user_data: schemas.UserCreate):
         session.close()
 
 @app.post("/login_user")
-def login_user(login_data: schemas.UserLogin):
+def login_user(data: schemas.UserLogin):
     session = Session()
     try:
         # 1. Search the database for this username
-        user = session.query(models.User).filter_by(username=login_data.username).first()
+        user = session.query(models.User).filter_by(username=data.username).first()
         
         # 2. If the user doesn't exist, fail
         if not user:
-            logger.error(f"Failed to login user, invalid username: {login_data.username}")
+            logger.error(f"Failed to login user, invalid username: {data.username}")
             raise fastapi.HTTPException(status_code=401, detail="Invalid username")
             
         # 3. Check if the password matches the hashed password in the DB
-        if not security.verify_password(login_data.password, user.password):
-            logger.error(f"Failed to login user, invalid password: {login_data.password}")
+        if not security.verify_password(data.password, user.password):
+            logger.error(f"Failed to login user, invalid password: {data.password}")
             raise fastapi.HTTPException(status_code=401, detail="Invalid username or password")
 
-        logger.info(f"Successfully login user: {login_data.username}")
+        logger.info(f"Successfully login user: {data.username}")
         return {"success": True, "message": "Login successful!"}
         
     finally:
         session.close()
 
 @app.post("/upload_image")
+#needs to append the current plant model too
 async def upload_image(image_file: UploadFile = File(...)):
     """
     Saves an uploaded image directly to the local hard drive 
@@ -130,9 +131,14 @@ async def upload_image(image_file: UploadFile = File(...)):
     """
     try:
         # Give it a random unique name so images don't overwrite each other
-        file_extension = image_file.filename.split(".")[-1]
+        file_extension = image_file.filename.split(".")[-1].lower
+
+        allowed_extensions = ["jpg", "jpeg", "png", "heic"]
+        if file_extension not in allowed_extensions:
+            raise fastapi.HTTPException(status_code=400, detail="Invalid file extension. Only images allowed.")
+
         unique_filename = f"{uuid.uuid4()}.{file_extension}"
-        
+
         # The exact path on your hard drive
         file_path = f"uploaded_images/{unique_filename}"
         
@@ -173,4 +179,26 @@ async def get_image(data: schemas.GetImg):
 
     finally:
         session.close()
+
+
+@app.post("/create_plant")
+async def create_plant(data: schemas.PlantCreate):
+    session = Session()
+    try:
+        new_plant = models.Plant(**data.model_dump())
+        session.add(new_plant)
+        session.commit()
+        
+        session.refresh(new_plant)
+        plant_id = new_plant.plant_id
+
+        logger.info(f"Successfully created plant: {data.username}")
+        return {"success": True, "message": "Plant created!", "user": data.username, "plant #": plant_id }
+        
+    finally:
+        session.close()
+
+
+
+
 
