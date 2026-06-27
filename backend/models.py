@@ -10,7 +10,8 @@ class User(Base):
     # 'id' acts like SERIAL, but 'username' is your actual primary key based on your SQL
     id = Column(Integer, Identity(), unique=True)
     username = Column(String(20), primary_key=True)
-    nickname = Column(String(20), nullable=False)
+    email = Column(String(80), nullable=False)
+    nickname = Column(String(20))
     firstname = Column(String(40), nullable=False)
     lastname = Column(String(40), nullable=False)
     password = Column(String(255), nullable=False)

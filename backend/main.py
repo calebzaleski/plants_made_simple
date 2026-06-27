@@ -1,13 +1,14 @@
 import os
 import uuid
 from sqlalchemy.exc import IntegrityError
-from fastapi import UploadFile, File
+from fastapi import UploadFile, File, Header, Depends
 from fastapi.staticfiles import StaticFiles
 import fastapi
 import logging
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import sessionmaker
+from psycopg.errors import ForeignKeyViolation
 from dotenv import load_dotenv
 from backend import schemas
 from backend import models
@@ -43,6 +44,33 @@ my_url = URL.create(
 engine = create_engine(my_url)
 Session = sessionmaker(bind=engine)
 
+# Create tables if they don't exist
+models.Base.metadata.create_all(bind=engine)
+
+
+from fastapi.middleware.cors import CORSMiddleware
+
+
+app = fastapi.FastAPI()
+logger.info("started")
+
+# 1. Grab the origins from your .env file, default to localhost if not found
+origins = os.getenv("ALLOWED_ORIGINS")
+
+# 2. Apply the CORS rules
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+os.makedirs("uploaded_images", exist_ok=True)
+
+app.mount("/images", StaticFiles(directory="uploaded_images"), name="images")
+
+@app.post("/test")
 def test_connection():
     try:
         with engine.connect() as connection:
@@ -55,19 +83,6 @@ def test_connection():
         logger.error(f"Error details: {e}")
         return {"success": False, "Results": result}
 
-
-app = fastapi.FastAPI()
-
-os.makedirs("uploaded_images", exist_ok=True)
-
-# 2. Tell FastAPI to serve this folder publicly at the /images URL
-app.mount("/images", StaticFiles(directory="uploaded_images"), name="images")
-
-@app.post("/test")
-def test_app():
-    test_connection()
-    logger.info("/test command triggered")
-
 @app.post("/create_user")
 def create_user(data: schemas.UserCreate):
     session = Session()
@@ -76,9 +91,10 @@ def create_user(data: schemas.UserCreate):
     try:
         new_user = models.User(
             username=data.username,
-            nickname=data.nickname,
+            nickname=data.nickname, #type: ignore
             firstname=data.firstname,
             lastname=data.lastname,
+            email=data.email,
             password=security.hash_password(data.password)
         )
         session.add(new_user)
@@ -111,12 +127,12 @@ def login_user(data: schemas.UserLogin):
             logger.error(f"Failed to login user, invalid username: {data.username}")
             raise fastapi.HTTPException(status_code=401, detail="Invalid username")
             
-        # 3. Check if the password matches the hashed password in the DB
-        if not security.verify_password(data.password, user.password):
+        if not security.verify_password(data.password, str(user.password)):
             logger.error(f"Failed to login user, invalid password: {data.password}")
             raise fastapi.HTTPException(status_code=401, detail="Invalid username or password")
-
+            
         logger.info(f"Successfully login user: {data.username}")
+        
         return {"success": True, "message": "Login successful!"}
         
     finally:
@@ -131,11 +147,13 @@ async def upload_image(image_file: UploadFile = File(...)):
     """
     try:
         # Give it a random unique name so images don't overwrite each other
-        file_extension = image_file.filename.split(".")[-1].lower
+        file_extension = image_file.filename.split(".")[-1].lower #type: ignore
 
         allowed_extensions = ["jpg", "jpeg", "png", "heic"]
-        if file_extension not in allowed_extensions:
-            raise fastapi.HTTPException(status_code=400, detail="Invalid file extension. Only images allowed.")
+
+        if "." not in file_extension or file_extension not in allowed_extensions:
+            logger.error(f"Failed to upload image: {image_file}")
+            raise fastapi.HTTPException(status_code=400, detail="Invalid file. Only 'jpg jpeg png heic; images allowed.")
 
         unique_filename = f"{uuid.uuid4()}.{file_extension}"
 
@@ -157,7 +175,7 @@ async def upload_image(image_file: UploadFile = File(...)):
         raise fastapi.HTTPException(status_code=500, detail="Failed to save image locally")
 
 @app.post("/get_image")
-async def get_image(data: schemas.GetImg):
+async def get_image(data: schemas.Image):
     session = Session()
     try:
         plant = session.query(models.Plant).filter_by(username=data.username, plant_id=data.plant_number).first()
@@ -180,12 +198,19 @@ async def get_image(data: schemas.GetImg):
     finally:
         session.close()
 
-
 @app.post("/create_plant")
 async def create_plant(data: schemas.PlantCreate):
     session = Session()
     try:
+
         new_plant = models.Plant(**data.model_dump())
+
+        user = session.query(models.User).filter_by(username=data.username).first()
+
+        if not user:
+            raise fastapi.HTTPException(status_code=404, detail="User not found")
+
+        user.plants += 1
         session.add(new_plant)
         session.commit()
         
@@ -194,11 +219,68 @@ async def create_plant(data: schemas.PlantCreate):
 
         logger.info(f"Successfully created plant: {data.username}")
         return {"success": True, "message": "Plant created!", "user": data.username, "plant #": plant_id }
-        
+
+    except IntegrityError as e:
+        session.rollback()
+        if isinstance(e.orig, ForeignKeyViolation):
+            logger.error(f"User does not exist in database: {data.username}. {e.orig}")
+            raise fastapi.HTTPException(status_code=400, detail=f"User does not exist in database: {data.username}. {e.orig}")
+        else:
+            logger.error(f"Failed to create plant. Error: {e}")
+            raise fastapi.HTTPException(status_code=400, detail=f"Failed to create plant. Error: {e}")
     finally:
         session.close()
 
+@app.patch("/update_plant/{plant_id}")
+async def update_plant(data: schemas.PlantUpdate, plant_id: int):
+    session = Session()
+    try:
+        plant = session.get(models.Plant, plant_id)
+        
+        update = data.model_dump(exclude_unset=True)
 
+        for item, value in update.items():
+            setattr(plant, item, value)
 
+        session.commit()
+        session.refresh(plant)
 
+        return {"success": True, "message": "Plant updated!"}
 
+    except IntegrityError as e:
+
+        session.rollback()
+        logger.error(f"Failed to update plant. Error: {e}")
+        raise fastapi.HTTPException(status_code=400, detail="Failed to update plant. Error: {e}")
+
+    finally:
+        session.close()
+
+@app.patch("/update_user/{username}")
+async def update_user(username: str, data: schemas.UserUpdate):
+    session = Session()
+    try:
+        user = session.query(models.User).filter_by(username=username).first()
+
+        if not user:
+            logger.info(f"Username not found: {username}")
+            raise fastapi.HTTPException(status_code=404, detail="Username not found")
+        if not security.verify_password(data.password, str(user.password)):
+            logger.info(f"Password incorrect: {data.password}")
+            raise fastapi.HTTPException(status_code=401, detail="Invalid password")
+
+        new_data = data.model_dump(exclude_unset=True, exclude={'password'})
+
+        for item, value in new_data.items():
+            setattr(user, item, value)
+
+        session.add(user)
+    except IntegrityError as e:
+        session.rollback()
+        logger.error(f"Failed to update user. Error: {e}")
+        raise fastapi.HTTPException(status_code=400, detail="Failed to update user. Error: {e}")
+    finally:
+        session.close()
+
+# Serve the frontend at the root URL (Must be at the VERY BOTTOM or else the backend does load in time for the frontend!)
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")

@@ -10,12 +10,11 @@ services:
     ports:
       - "${HOST_DB_PORT}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
       - ./postgres:/docker-entrypoint-initdb.d
 
-  backend:
+  server:
     build: 
-      context: ./backend
+      context: backend
       dockerfile: Dockerfile
     container_name: fastapi_backend
     restart: unless-stopped
@@ -29,6 +28,7 @@ services:
       - db
     volumes:
       - ./uploaded_images:/app/uploaded_images
+      - ./frontend:/app/frontend
 
 volumes:
   postgres_data:
