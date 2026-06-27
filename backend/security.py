@@ -1,4 +1,15 @@
+from typing import Any
+
 import bcrypt
+import jwt
+from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
+import os
+from fastapi import Header, HTTPException
+
+load_dotenv()
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
 
 def hash_password(plain_text_password: str) -> str:
     """
@@ -22,5 +33,44 @@ def verify_password(plain_text_password: str, hashed_password_from_db: str) -> b
     password_bytes = plain_text_password.encode('utf-8')
     hashed_bytes = hashed_password_from_db.encode('utf-8')
     
-    # bcrypt checks if the new password hashes to the exact same result
+    # bcrypt checks if the new password hashes to the exact
     return bcrypt.checkpw(password_bytes, hashed_bytes)
+
+def create_token(data: dict, expires_delta: timedelta = None) -> str:
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def verify_token(token: str) -> dict:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return {"Error": "The token has expired."}
+    except jwt.InvalidTokenError:
+        return {"Error": "Invalid token signature or format."}
+
+def get_user(authorization: str = Header(None)) -> Any | None:
+    """
+    FastAPI Dependency: Extracts the token from the header, verifies it, 
+    and returns the username so it can be injected into secure routes.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid token")
+    
+    token = authorization.split(" ")[1]
+    result = verify_token(token)
+    
+    if "Error" in result:
+        raise HTTPException(status_code=401, detail=result["Error"])
+        
+    # Grab whichever key you ended up using (subject or sub)
+    return result.get("subject", result.get("subject"))
+
+

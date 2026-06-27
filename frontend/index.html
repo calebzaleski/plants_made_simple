@@ -5,16 +5,55 @@
     <title>Create Account</title>
 </head>
 <body>
-    <h1>Create an Account</h1>
+    <div>
+        <h1>Create an Account</h1>
     
-    <input type="text" id="username" placeholder="Username">
-    <input type="text" id="nickname" placeholder="Nickname (optional)">
-    <input type="text" id="email" placeholder="Email">
-    <input type="password" id="password" placeholder="Password">
-    <input type="text" id="firstname" placeholder="First Name">
-    <input type="text" id="lastname" placeholder="Last Name">
+        <input type="text" id="username-create" placeholder="Username">
+        <input type="text" id="nickname" placeholder="Nickname (optional)">
+        <input type="text" id="email" placeholder="Email">
+        <input type="password" id="password-create" placeholder="Password">
+        <input type="text" id="firstname" placeholder="First Name">
+        <input type="text" id="lastname" placeholder="Last Name">
     
-    <button type="button" id="create-btn">Submit</button>
+        <button type="button" id="create-btn">Submit</button>
+    </div>
+    <div>
+        <h1>Login</h1>
+
+        <input type="text" id="username-login" placeholder="username">
+        <input type="text" id="password-login" placeholder="Last Name">
+
+        <button type="button" id="login-btn">Submit</button>
+
+    </div>
+    <div>
+        <h1>Create Plant</h1>
+        <input type="text" id="plant_name" placeholder="Plant Name (e.g. Fernie)">
+        <input type="text" id="scientific_name" placeholder="Scientific Name">
+        <input type="number" id="age" placeholder="Age (years)">
+        <input type="text" id="image_url" placeholder="Image URL">
+        <input type="text" id="health" placeholder="Health Status">
+        <input type="text" id="notes" placeholder="Notes">
+        <input type="text" id="light_needs" placeholder="Light Needs">
+        <input type="text" id="fertilizer_needs" placeholder="Fertilizer Needs">
+        
+        <label for="date_acquired">Date Acquired:</label>
+        <input type="date" id="date_acquired">
+        
+        <label for="date_last_water">Last Watered:</label>
+        <input type="date" id="date_last_water">
+        
+        <label for="date_next_water">Next Water Date:</label>
+        <input type="date" id="date_next_water">
+        
+        <label for="date_last_pot">Last Potted:</label>
+        <input type="date" id="date_last_pot">
+        
+        <label for="date_next_pot">Next Pot Date:</label>
+        <input type="date" id="date_next_pot">
+
+        <button type="button" id="create_plant-btn">Create Plant</button>
+    </div>
 
     <script src="post.js"></script>
 </body>

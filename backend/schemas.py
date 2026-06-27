@@ -22,7 +22,6 @@ class GetUser(BaseModel):
     username: str
 
 class PlantCreate(BaseModel):
-    username: str
     plant_name: str
     scientific_name: str
     age: int  # years

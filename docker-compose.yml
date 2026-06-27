@@ -16,7 +16,7 @@ services:
     build: 
       context: backend
       dockerfile: Dockerfile
-    container_name: fastapi_backend
+    container_name: fastapi-server
     restart: unless-stopped
     ports:
       - "${FASTAPI_PORT}:8000"

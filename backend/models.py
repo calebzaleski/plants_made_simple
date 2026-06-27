@@ -28,7 +28,7 @@ class Plant(Base):
     plant_id = Column(Integer, primary_key=True, autoincrement=True)
     
     # Foreign key linking back to the users table
-    username = Column(String(20), ForeignKey('users.username'), nullable=False)
+    username: str = Column(String(20), ForeignKey('users.username'), nullable=False)
     
     # Plant Details
     plant_name = Column(String(100), nullable=False)

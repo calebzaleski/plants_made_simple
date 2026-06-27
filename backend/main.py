@@ -99,9 +99,11 @@ def create_user(data: schemas.UserCreate):
         )
         session.add(new_user)
         session.commit()
-        
+
+        token = security.create_token({"subject": data.username})
         logger.info(f"Successfully created user: {data.username}")
-        return {"success": True, "message": f"User {data.username} created!"}
+        return {"success": True, "message": f"User {data.username} created!", "token": token}
+
     except IntegrityError as e:
         session.rollback()
         logger.error(f"Failed to create user. prob the same username but = Error: {e}")
@@ -113,6 +115,7 @@ def create_user(data: schemas.UserCreate):
         raise fastapi.HTTPException(status_code=400, detail="Username already exists or invalid data.")
 
     finally:
+
         session.close()
 
 @app.post("/login_user")
@@ -130,10 +133,10 @@ def login_user(data: schemas.UserLogin):
         if not security.verify_password(data.password, str(user.password)):
             logger.error(f"Failed to login user, invalid password: {data.password}")
             raise fastapi.HTTPException(status_code=401, detail="Invalid username or password")
-            
+
         logger.info(f"Successfully login user: {data.username}")
-        
-        return {"success": True, "message": "Login successful!"}
+        token = security.create_token({"subject": user.username})
+        return {"success": True, "message": "Login successful!", "token": token}
         
     finally:
         session.close()
@@ -199,43 +202,47 @@ async def get_image(data: schemas.Image):
         session.close()
 
 @app.post("/create_plant")
-async def create_plant(data: schemas.PlantCreate):
+async def create_plant(data: schemas.PlantCreate, user: str = Depends(security.get_user)):
     session = Session()
     try:
 
         new_plant = models.Plant(**data.model_dump())
+        new_plant.username = user
 
-        user = session.query(models.User).filter_by(username=data.username).first()
+        username = session.query(models.User).filter_by(username=user).first()
 
-        if not user:
+        if not username:
             raise fastapi.HTTPException(status_code=404, detail="User not found")
 
-        user.plants += 1
+        username.plants += 1
         session.add(new_plant)
         session.commit()
         
         session.refresh(new_plant)
         plant_id = new_plant.plant_id
 
-        logger.info(f"Successfully created plant: {data.username}")
-        return {"success": True, "message": "Plant created!", "user": data.username, "plant #": plant_id }
+        logger.info(f"Successfully created plant: {data.plant_name}")
+        return {"success": True, "message": "Plant created!", "user": new_plant.username, "plant #": plant_id }
 
     except IntegrityError as e:
         session.rollback()
-        if isinstance(e.orig, ForeignKeyViolation):
-            logger.error(f"User does not exist in database: {data.username}. {e.orig}")
-            raise fastapi.HTTPException(status_code=400, detail=f"User does not exist in database: {data.username}. {e.orig}")
-        else:
-            logger.error(f"Failed to create plant. Error: {e}")
-            raise fastapi.HTTPException(status_code=400, detail=f"Failed to create plant. Error: {e}")
+        logger.error(f"Failed to create plant. Error: {e}")
+        raise fastapi.HTTPException(status_code=400, detail=f"Failed to create plant. Error: {e}")
     finally:
         session.close()
 
 @app.patch("/update_plant/{plant_id}")
-async def update_plant(data: schemas.PlantUpdate, plant_id: int):
+async def update_plant(data: schemas.PlantUpdate, plant_id: int, user: str = Depends(security.get_user)):
     session = Session()
     try:
+
         plant = session.get(models.Plant, plant_id)
+
+        if not plant:
+            fastapi.HTTPException(status_code=404, detail="Plant not found")
+        if user != plant.username:
+            raise fastapi.HTTPException(status_code=403, detail="no permission")
+
         
         update = data.model_dump(exclude_unset=True)
 
@@ -256,8 +263,8 @@ async def update_plant(data: schemas.PlantUpdate, plant_id: int):
     finally:
         session.close()
 
-@app.patch("/update_user/{username}")
-async def update_user(username: str, data: schemas.UserUpdate):
+@app.patch("/update_user/")
+async def update_user(data: schemas.UserUpdate, username: str = Depends(security.get_user)):
     session = Session()
     try:
         user = session.query(models.User).filter_by(username=username).first()
