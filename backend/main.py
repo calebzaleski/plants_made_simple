@@ -124,6 +124,7 @@ def login_user(data: schemas.UserLogin):
     try:
         # 1. Search the database for this username
         user = session.query(models.User).filter_by(username=data.username).first()
+
         
         # 2. If the user doesn't exist, fail
         if not user:
@@ -136,7 +137,7 @@ def login_user(data: schemas.UserLogin):
 
         logger.info(f"Successfully login user: {data.username}")
         token = security.create_token({"subject": user.username})
-        return {"success": True, "message": "Login successful!", "token": token}
+        return {"success": True, "message": "Login successful!", "token": token, "firstname": user.firstname}
         
     finally:
         session.close()

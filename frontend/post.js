@@ -1,4 +1,4 @@
-document.getElementById("create-btn").addEventListener("click",
+document.getElementById("create-btn")?.addEventListener("click",
     async function createUser() {
 
     const data = {
@@ -29,10 +29,14 @@ document.getElementById("create-btn").addEventListener("click",
     // 3. If we made it here, it was a success!
 
     console.log("Successfully created user:", result);
-    if (result.success === true) {localStorage.setItem("token", result.token);}
+    if (result.success === true) {
+        localStorage.setItem("token", result.token); 
+        localStorage.setItem("firstname", data.firstname); // Grabs from the input box!
+        window.location.reload(); // Auto-refresh!
+    }
 });
 
-document.getElementById("login-btn").addEventListener("click", async function login() {
+document.getElementById("login-btn")?.addEventListener("click", async function login() {
     const data = {
         username: document.getElementById('username-login').value,
         password: document.getElementById('password-login').value,
@@ -49,12 +53,22 @@ document.getElementById("login-btn").addEventListener("click", async function lo
 
     console.log("Success:", result.message);
 
-    if (result.success === true) {localStorage.setItem("token", result.token);}
+    if (result.success === true) {
+        localStorage.setItem("token", result.token); 
+        
+        // Only try to save the firstname if the backend actually sent it!
+        if (result.firstname) {
+            localStorage.setItem("firstname", result.firstname); 
+        }
+        
+        // Auto-refresh the page to show the logged-in screen!
+        window.location.reload();
+    }
 
 
 })
 
-document.getElementById("create_plant-btn").addEventListener("click", async function creat_plant() {
+document.getElementById("create_plant-btn")?.addEventListener("click", async function creat_plant() {
     const data = {
         plant_name: document.getElementById('plant_name').value,
         scientific_name: document.getElementById('scientific_name').value,
@@ -106,9 +120,10 @@ inputs.forEach((input, index) => {
             if (index < inputs.length - 1) {
                 inputs[index + 1].focus(); // Jump the cursor to the next box!
             } else {
-                // If it's the very last box, click the submit button for them!
-                submitBtn.click();
+                // If it's the very last box, click the submit button for them (if it exists)
+                if (submitBtn) submitBtn.click();
             }
         }
     });
 });
+

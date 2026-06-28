@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Settings - Authentication</title>
+    <!-- Link to our new centralized CSS file -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Inject the Navbar right here -->
+    <div id="navbar"></div>
+
+    <!-- View for users who are NOT logged in -->
+    <div id="unauthenticated-view">
+        <div class="auth-container">
+        
+        <!-- Login Card -->
+        <div class="auth-card">
+            <h1>Login</h1>
+            <div class="form-group">
+                <input type="text" id="username-login" placeholder="Username">
+            </div>
+            <div class="form-group">
+                <!-- Note: I fixed your placeholder here. It said 'Last Name' previously! -->
+                <input type="password" id="password-login" placeholder="Password">
+            </div>
+            <button type="button" id="login-btn">Log In</button>
+        </div>
+
+        <!-- Create Account Card -->
+        <div class="auth-card">
+            <h1>Create Account</h1>
+            <div class="form-group">
+                <input type="text" id="username-create" placeholder="Username">
+            </div>
+            <div class="form-group">
+                <input type="text" id="nickname" placeholder="Nickname (optional)">
+            </div>
+            <div class="form-group">
+                <input type="email" id="email" placeholder="Email">
+            </div>
+            <div class="form-group">
+                <input type="password" id="password-create" placeholder="Password">
+            </div>
+            <div class="form-group">
+                <input type="text" id="firstname" placeholder="First Name">
+            </div>
+            <div class="form-group">
+                <input type="text" id="lastname" placeholder="Last Name">
+            </div>
+            <button type="button" id="create-btn">Sign Up</button>
+        </div>
+
+        </div>
+    </div>
+
+    <!-- View for users who ARE logged in -->
+    <div id="authenticated-view" style="display: none;">
+        <div class="auth-container">
+            <div class="auth-card" style="text-align: center;">
+                <h1>Account Settings</h1>
+                <p style="margin-bottom: 20px; color: #4caf50;">You are currently logged in!</p>
+                <button type="button" id="logout-btn">Log Out</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts to load navbar and handle login logic -->
+    <script>
+        // Because settings.html and navbar.html are in the SAME folder, we don't need a path!
+        fetch('navbar.html')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('navbar').innerHTML = data;
+            
+            // Update the greeting name (preventing "undefined" glitch)
+            let storedname = localStorage.getItem("firstname");
+            if (!storedname || storedname === "undefined" || storedname === "null") {
+                storedname = "there friend";
+            }
+            let nameElement = document.getElementById('nav-firstname');
+            if (nameElement) nameElement.textContent = storedname;
+          });
+
+        // IF DISPLAY LOGIC: Check if the user actually has a valid token
+        let token = localStorage.getItem("token");
+        if (token && token !== "undefined" && token !== "null") {
+            // Hide the login/signup form and show the logged-in settings
+            document.getElementById('unauthenticated-view').style.display = 'none';
+            document.getElementById('authenticated-view').style.display = 'block';
+        }
+
+        // Add logout functionality for the new button
+        document.getElementById('logout-btn')?.addEventListener('click', () => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("firstname");
+            window.location.reload(); // Refresh the page to show the login screen again
+        });
+    </script>
+    <script src="post.js"></script>
+</body>
+</html>
