@@ -1,13 +1,47 @@
 # Plants Made Simple
 
-A FastAPI and Vanilla JS application.
+A FastAPI and Vanilla JS application that helps you keep better track of your plants.
 
-## How to run (For End Users)
+## Dockercompose
 
-If you just want to run the application, you do not need to download this repository. 
-You can run the pre-built application using Docker Compose.
+```services:
+  db:
+    image: postgres:17-alpine
+    container_name: postgres_server
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: plants_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
-1. Download the `docker-compose.yml` file from this repository to an empty folder on your computer.
+  server:
+    image: ghcr.io/calebzaleski/plants_made_simple:latest
+    container_name: fastapi-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - USER=admin
+      - PASSWORD=mypassword
+      - POSTGRES_DB=plants_db
+      - DB_HOST=db
+      - TZ=America/New_York
+      # IMPORTANT: Change ALLOWED_ORIGINS to match your server IP/domain
+      - ALLOWED_ORIGINS=http://localhost:8000 
+    depends_on:
+      - db
+    volumes:
+      - ./uploaded_images:/app/uploaded_images
+
+volumes:
+  postgres_data:
+  ```
+
+
 2. Open your terminal in that folder and run:
 ```bash
 docker-compose up -d
