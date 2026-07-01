@@ -1,11 +1,15 @@
 from typing import Any
-
 import bcrypt
 import jwt
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import os
 from fastapi import Header, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends, HTTPException
+
+bearer_scheme = HTTPBearer()
+
 
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -56,15 +60,13 @@ def verify_token(token: str) -> dict:
     except jwt.InvalidTokenError:
         return {"Error": "Invalid token signature or format."}
 
-def get_user(authorization: str = Header(None)) -> Any | None:
+
+def get_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> Any | None:
     """
     FastAPI Dependency: Extracts the token from the header, verifies it, 
     and returns the username so it can be injected into secure routes.
     """
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid token")
-    
-    token = authorization.split(" ")[1]
+    token = credentials.credentials
     result = verify_token(token)
     
     if "Error" in result:

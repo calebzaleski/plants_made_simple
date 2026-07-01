@@ -1,6 +1,6 @@
 import os
 import uuid
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from fastapi import UploadFile, File, Header, Depends
 from fastapi.staticfiles import StaticFiles
 import fastapi
@@ -8,11 +8,11 @@ import logging
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import sessionmaker
-from psycopg.errors import ForeignKeyViolation
 from dotenv import load_dotenv
 from backend import schemas
 from backend import models
 from backend import security
+from datetime import date, timedelta
 
 
 #logger stuff
@@ -68,7 +68,7 @@ app.add_middleware(
 
 os.makedirs("uploaded_images", exist_ok=True)
 
-app.mount("/images", StaticFiles(directory="uploaded_images"), name="images")
+app.mount("/uploaded_images", StaticFiles(directory="uploaded_images"), name="images")
 
 @app.post("/test")
 def test_connection():
@@ -151,13 +151,17 @@ async def upload_image(image_file: UploadFile = File(...)):
     """
     try:
         # Give it a random unique name so images don't overwrite each other
-        file_extension = image_file.filename.split(".")[-1].lower #type: ignore
+        if "." not in image_file.filename:
+            logger.error(f"Failed to upload image: {image_file.filename} (No extension)")
+            raise fastapi.HTTPException(status_code=400, detail="Invalid file. No extension found.")
+            
+        file_extension = image_file.filename.split(".")[-1].lower()
 
         allowed_extensions = ["jpg", "jpeg", "png", "heic"]
 
-        if "." not in file_extension or file_extension not in allowed_extensions:
-            logger.error(f"Failed to upload image: {image_file}")
-            raise fastapi.HTTPException(status_code=400, detail="Invalid file. Only 'jpg jpeg png heic; images allowed.")
+        if file_extension not in allowed_extensions:
+            logger.error(f"Failed to upload image: {image_file.filename} (Invalid extension)")
+            raise fastapi.HTTPException(status_code=400, detail="Invalid file. Only 'jpg jpeg png heic' images allowed.")
 
         unique_filename = f"{uuid.uuid4()}.{file_extension}"
 
@@ -169,7 +173,7 @@ async def upload_image(image_file: UploadFile = File(...)):
             buffer.write(await image_file.read())
 
         # Return the public URL to save in the database
-        public_url = f"http://localhost:8000/images/{unique_filename}"
+        public_url = f"/uploaded_images/{unique_filename}"
 
         logger.info(f"Successfully uploaded image: {public_url}")
         return {"success": True, "image_url": public_url}
@@ -178,7 +182,7 @@ async def upload_image(image_file: UploadFile = File(...)):
         logger.error(f"Failed to upload image: {e}")
         raise fastapi.HTTPException(status_code=500, detail="Failed to save image locally")
 
-@app.post("/get_image")
+@app.get("/get_image")
 async def get_image(data: schemas.Image):
     session = Session()
     try:
@@ -289,6 +293,122 @@ async def update_user(data: schemas.UserUpdate, username: str = Depends(security
         raise fastapi.HTTPException(status_code=400, detail="Failed to update user. Error: {e}")
     finally:
         session.close()
+
+
+@app.patch("/water_plant/{plant_id}")
+def water_plants(plant_id: int, user: str = Depends(security.get_user)):
+    session = Session()
+    try:
+        plant = session.query(models.Plant).filter_by(plant_id=plant_id, username=user).first()
+
+        if not plant:
+            raise fastapi.HTTPException(status_code=404, detail="Plant not found")
+
+        today = date.today()
+        plant.date_last_water = today
+        plant.date_next_water = today + timedelta(days=plant.water_frequency)
+
+        logger.info(f"Successfully watered plant: {plant_id}")
+        session.commit()
+
+        return {"success": True, "message": f"Plant watered! Next watering on {plant.date_next_water}"}
+
+    except SQLAlchemyError as e:
+        logger.error(f"Database error while fetching plant. Error: {e}")
+        raise fastapi.HTTPException(status_code=500, detail="Database error occurred")
+
+    except IntegrityError as e:
+        logger.error(f"Failed to fetch plant. Error: {e}")
+        raise fastapi.HTTPException(status_code=404, detail="Plant not found")
+
+    finally:
+        session.close()
+
+@app.patch("/fertilize_plant/{plant_id}")
+def fertilize_plant(plant_id: int, user: str = Depends(security.get_user)):
+    session = Session()
+    try:
+        plant = session.query(models.Plant).filter_by(plant_id=plant_id, username=user).first()
+
+        if not plant:
+            raise fastapi.HTTPException(status_code=404, detail="Plant not found")
+
+        today = date.today()
+
+        plant.date_last_fertilized = today
+        plant.date_next_fertilized = today + timedelta(days=plant.fertilizer_frequency)
+        logger.info(f"Successfully fertilized plant: {plant.plant_id}")
+        session.commit()
+
+    except SQLAlchemyError as e:
+        logger.error(f"Database error while fetching plant. Error: {e}")
+        raise fastapi.HTTPException(status_code=500, detail="Database error occurred")
+
+    except IntegrityError as e:
+        logger.error(f"Failed to fetch plant. Error: {e}")
+        raise fastapi.HTTPException(status_code=404, detail="Plant not found")
+
+@app.patch("/pot_plant/{plant_id}")
+def pot_plant(plant_id: int, user: str = Depends(security.get_user)):
+    session = Session()
+    try:
+        plant = session.query(models.Plant).filter_by(plant_id=plant_id, username=user).first()
+        if not plant:
+            raise fastapi.HTTPException(status_code=404, detail="Plant not found")
+        today = date.today()
+        plant.date_last_pot = today
+        plant.date_next_pot = today + timedelta(days=plant.pot_frequency)
+        logger.info(f"repotted plant, next pot at: {plant.date_next_pot}")
+        session.commit()
+
+    except SQLAlchemyError as e:
+        logger.error(f"Database error while fetching plant. Error: {e}")
+        raise fastapi.HTTPException(status_code=500, detail="Database error occurred")
+    except IntegrityError as e:
+        logger.error(f"Failed to fetch plant. Error: {e}")
+        raise fastapi.HTTPException(status_code=404, detail="Plant not found")
+
+@app.get("/all_plants/")
+def all_plants(user: str = Depends(security.get_user)):
+    session = Session()
+    try:
+        plants = session.query(models.Plant).filter_by(username=user).all()
+        logger.info(f"Successfully fetched {len(plants)} plants")
+        # Serialize to plain dicts HERE, while the session is still open
+        plants_data = [
+            {c.name: getattr(p, c.name) for c in models.Plant.__table__.columns}
+            for p in plants
+        ]
+        return {"success": True, "plants": plants_data}
+    except SQLAlchemyError as e:
+        logger.error(f"Database error while fetching plants: {e}")
+        raise fastapi.HTTPException(status_code=500, detail="Database error occurred")
+    finally:
+        session.close()
+
+
+@app.get("/get_plant/{plant_id}")
+def get_plant(plant_id: int, user: str = Depends(security.get_user)):
+    session = Session()
+    try:
+        plant = session.query(models.Plant).filter_by(plant_id=plant_id, username=user).first()
+        logger.info(f"Successfully fetched plant: {plant_id}")
+        if not plant:
+            raise fastapi.HTTPException(status_code=404, detail="Plant not found")
+        # Serialize to a plain dict while the session is still open
+        plant_data = {c.name: getattr(plant, c.name) for c in models.Plant.__table__.columns}
+        return {"success": True, "plant_id": plant.plant_id, "plant": plant_data}
+    except SQLAlchemyError as e:
+        logger.error(f"Database error while fetching plant. Error: {e}")
+        raise fastapi.HTTPException(status_code=500, detail="Database error occurred")
+    finally:
+        session.close()
+
+
+
+
+
+# use pandas to retrieve upnext watering and potings
 
 # Serve the frontend at the root URL (Must be at the VERY BOTTOM or else the backend does load in time for the frontend!)
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")

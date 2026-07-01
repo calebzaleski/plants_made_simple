@@ -2,17 +2,209 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Create Account</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plants Made Simple — Dashboard</title>
+    <meta name="description" content="Your personal plant care dashboard. Track watering, fertilizing, and repotting schedules all in one place.">
     <link rel="stylesheet" href="style.css">
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+
+    <!-- Navbar injected here -->
     <div id="navbar"></div>
-    <div class="content">
-        <h1>main dashboard</h1>
+
+    <!-- ========== MAIN DASHBOARD LAYOUT ========== -->
+    <div class="dashboard-layout">
+
+        <!-- ===== LEFT COLUMN: Upcoming Tasks ===== -->
+        <aside class="dashboard-left">
+            <div class="tasks-panel">
+                <h2 class="panel-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Upcoming Tasks
+                </h2>
+
+                <!-- Today's date display -->
+                <div class="today-date" id="today-date"></div>
+
+                <!-- Dynamic task list — populated by dashboard.js -->
+                <ul class="task-list" id="task-list">
+                    <li class="task-item task-empty">Loading tasks…</li>
+                </ul>
+            </div>
+        </aside>
+
+        <!-- ===== RIGHT COLUMN: Actions + Plant Grid ===== -->
+        <main class="dashboard-right">
+
+            <!-- ---- 3 Action Buttons ---- -->
+            <div class="action-buttons">
+                <button type="button" class="action-btn btn-water" id="quick-water-btn">
+                    <span class="action-icon">💧</span>
+                    <span>Water Plant</span>
+                </button>
+                <button type="button" class="action-btn btn-fertilize" id="quick-fertilize-btn">
+                    <span class="action-icon">🌿</span>
+                    <span>Fertilize Plant</span>
+                </button>
+                <button type="button" class="action-btn btn-repot" id="quick-repot-btn">
+                    <span class="action-icon">🪴</span>
+                    <span>Re-pot Plant</span>
+                </button>
+            </div>
+
+            <!-- ---- Plant Grid ---- -->
+            <div class="plant-grid" id="plant-grid">
+                <p class="grid-empty" id="grid-loading">Loading your plants…</p>
+            </div>
+
+        </main>
     </div>
 
-    <script src="post.js"></script>
+    <!-- ========== QUICK-ACTION MODAL (Water / Fertilize / Re-pot) ========== -->
+    <div class="modal-backdrop" id="action-modal-backdrop">
+        <div class="modal" id="action-modal">
+            <button class="modal-close" id="action-modal-close" type="button">✕</button>
+            <h2 class="modal-title" id="action-modal-title">Water a Plant</h2>
+            <p class="modal-subtitle">Select which plant you want to act on:</p>
+            <!-- Radio list of plants populated by JS -->
+            <ul class="modal-plant-list" id="action-plant-list"></ul>
+            <button type="button" class="modal-submit-btn" id="action-modal-submit">Confirm</button>
+        </div>
+    </div>
+
+    <!-- ========== EDIT PLANT MODAL ========== -->
+    <div class="modal-backdrop" id="edit-modal-backdrop">
+        <div class="modal modal-wide" id="edit-modal">
+            <button class="modal-close" id="edit-modal-close" type="button">✕</button>
+            <h2 class="modal-title">Edit Plant</h2>
+
+            <!-- hidden field to track which plant we're editing -->
+            <input type="hidden" id="edit-plant-id">
+
+            <div class="edit-grid">
+                <div class="form-group">
+                    <label>Plant Name</label>
+                    <input type="text" id="edit-plant_name" placeholder="Monstera">
+                </div>
+                <div class="form-group">
+                    <label>Scientific Name</label>
+                    <input type="text" id="edit-scientific_name" placeholder="Monstera deliciosa">
+                </div>
+                <div class="form-group">
+                    <label>Age (years)</label>
+                    <input type="number" id="edit-age" placeholder="2">
+                </div>
+                <div class="form-group">
+                    <label>Health Status</label>
+                    <input type="text" id="edit-health" placeholder="Healthy / Struggling…">
+                </div>
+                <div class="form-group">
+                    <label>Plant Image</label>
+                    <input type="file" id="edit-image_file" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label>Light Needs</label>
+                    <input type="text" id="edit-light_needs" placeholder="Bright indirect…">
+                </div>
+                <div class="form-group">
+                    <label>Fertilizer Needs</label>
+                    <input type="text" id="edit-fertilizer_needs" placeholder="Monthly…">
+                </div>
+                <div class="form-group">
+                    <label>Water Frequency (days)</label>
+                    <input type="number" id="edit-water_frequency" placeholder="7">
+                </div>
+                <div class="form-group">
+                    <label>Pot Frequency (days)</label>
+                    <input type="number" id="edit-pot_frequency" placeholder="365">
+                </div>
+                <div class="form-group">
+                    <label>Fertilizer Frequency (days)</label>
+                    <input type="number" id="edit-fertilizer_frequency" placeholder="30">
+                </div>
+                <div class="form-group form-full">
+                    <label>Notes</label>
+                    <textarea id="edit-notes" placeholder="Any extra care notes…" rows="3"></textarea>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="modal-submit-btn" id="edit-save-btn">Save Changes</button>
+                <button type="button" class="modal-cancel-btn" id="edit-cancel-btn">Cancel</button>
+            </div>
+
+            <!-- Feedback message -->
+            <p class="edit-feedback" id="edit-feedback"></p>
+        </div>
+    </div>
+
+    <!-- ========== CREATE PLANT MODAL ========== -->
+    <div class="modal-backdrop" id="create-modal-backdrop">
+        <div class="modal modal-wide" id="create-modal">
+            <button class="modal-close" id="create-modal-close" type="button">✕</button>
+            <h2 class="modal-title">Add New Plant</h2>
+
+            <div class="edit-grid">
+                <div class="form-group">
+                    <label>Plant Name *</label>
+                    <input type="text" id="create-plant_name" placeholder="e.g. Monstera" required>
+                </div>
+                <div class="form-group">
+                    <label>Scientific Name</label>
+                    <input type="text" id="create-scientific_name" placeholder="e.g. Monstera deliciosa">
+                </div>
+                <div class="form-group">
+                    <label>Age (years)</label>
+                    <input type="number" id="create-age" placeholder="2">
+                </div>
+                <div class="form-group">
+                    <label>Health Status</label>
+                    <input type="text" id="create-health" placeholder="Healthy / Struggling…">
+                </div>
+                <div class="form-group">
+                    <label>Plant Image</label>
+                    <input type="file" id="create-image_file" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label>Light Needs</label>
+                    <input type="text" id="create-light_needs" placeholder="Bright indirect…">
+                </div>
+                <div class="form-group">
+                    <label>Fertilizer Needs</label>
+                    <input type="text" id="create-fertilizer_needs" placeholder="Monthly…">
+                </div>
+                <div class="form-group">
+                    <label>Water Frequency (days)</label>
+                    <input type="number" id="create-water_frequency" placeholder="7">
+                </div>
+                <div class="form-group">
+                    <label>Pot Frequency (days)</label>
+                    <input type="number" id="create-pot_frequency" placeholder="365">
+                </div>
+                <div class="form-group">
+                    <label>Fertilizer Frequency (days)</label>
+                    <input type="number" id="create-fertilizer_frequency" placeholder="30">
+                </div>
+                <div class="form-group form-full">
+                    <label>Notes</label>
+                    <textarea id="create-notes" placeholder="Any extra care notes…" rows="3"></textarea>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="modal-submit-btn" id="create-save-btn">Create Plant</button>
+                <button type="button" class="modal-cancel-btn" id="create-cancel-btn">Cancel</button>
+            </div>
+
+            <!-- Feedback message -->
+            <p class="edit-feedback" id="create-feedback"></p>
+        </div>
+    </div>
+
+    <!-- Scripts — display.js loads the navbar, dashboard.js does everything else -->
     <script src="display.js"></script>
+    <script src="dashboard.js"></script>
 </body>
 </html>

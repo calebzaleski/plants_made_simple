@@ -36,7 +36,12 @@ class PlantCreate(BaseModel):
     date_last_water: Optional[date] = None
     date_next_water: Optional[date] = None
     date_last_pot: Optional[date] = None
+    pot_frequency: Optional[int] = None
     date_next_pot: Optional[date] = None
+    water_frequency: Optional[int] = None
+    date_last_fertilized: Optional[date] = None
+    fertilizer_frequency: Optional[int] = None
+    date_next_fertilized: Optional[date] = None
 
 class PlantUpdate(BaseModel):
     plant_name: Optional[str] = None
@@ -50,8 +55,13 @@ class PlantUpdate(BaseModel):
     date_acquired: Optional[date] = None
     date_last_water: Optional[date] = None
     date_next_water: Optional[date] = None
+    water_frequency: Optional[int] = None
     date_last_pot: Optional[date] = None
+    pot_frequency: Optional[int] = None
     date_next_pot: Optional[date] = None
+    date_last_fertilized: Optional[date] = None
+    fertilizer_frequency: Optional[int] = None
+    date_next_fertilized: Optional[date] = None
 
 class UserUpdate(BaseModel):
     password: str
@@ -60,5 +70,6 @@ class UserUpdate(BaseModel):
     firstname: Optional[str] = None
     lastname: Optional[str] = None
     email: Optional[str] = None
+
 
 

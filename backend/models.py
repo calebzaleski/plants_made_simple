@@ -46,8 +46,13 @@ class Plant(Base):
     date_acquired = Column(Date)
     date_last_water = Column(Date)
     date_next_water = Column(Date)
+    water_frequency = Column(Integer) # days
     date_last_pot = Column(Date)
+    pot_frequency = Column(Integer) # days
     date_next_pot = Column(Date)
+    date_last_fertilized = Column(Date)
+    fertilizer_frequency = Column(Integer) # days
+    date_next_fertilized = Column(Date)
 
     # This links the relationship back to the User class
     owner = relationship("User", back_populates="user_plants")
