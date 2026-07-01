@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!--suppress HtmlFormInputWithoutLabel -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -149,15 +150,15 @@
             <div class="edit-grid">
                 <div class="form-group">
                     <label>Plant Name *</label>
-                    <input type="text" id="create-plant_name" placeholder="e.g. Monstera" required>
+                    <input type="text" id="create-plant_name" placeholder="Dwarf Jade" required>
                 </div>
                 <div class="form-group">
                     <label>Scientific Name</label>
-                    <input type="text" id="create-scientific_name" placeholder="e.g. Monstera deliciosa">
+                    <input type="text" id="create-scientific_name" placeholder="Portulacaria afra">
                 </div>
                 <div class="form-group">
                     <label>Age (years)</label>
-                    <input type="number" id="create-age" placeholder="2">
+                    <input type="number" id="create-age" placeholder="1">
                 </div>
                 <div class="form-group">
                     <label>Health Status</label>
@@ -185,7 +186,7 @@
                 </div>
                 <div class="form-group">
                     <label>Fertilizer Frequency (days)</label>
-                    <input type="number" id="create-fertilizer_frequency" placeholder="30">
+                    <input type="number" id="create-fertilizer_frequency" placeholder="28">
                 </div>
                 <div class="form-group form-full">
                     <label>Notes</label>
@@ -202,6 +203,57 @@
             <p class="edit-feedback" id="create-feedback"></p>
         </div>
     </div>
+
+    <!-- ========== TEMPLATES ========== -->
+    <template id="tpl-logged-out-grid">
+        <p class="grid-empty">Please <a href="settings.html" style="color:#4caf50;font-weight:600;">log in</a> to see your plants. 🔐</p>
+    </template>
+
+    <template id="tpl-logged-out-tasks">
+        <li class="task-item task-empty">Log in to see upcoming tasks.</li>
+    </template>
+
+    <template id="tpl-plant-card">
+        <div class="plant-card">
+            <div class="plant-img-wrap"></div>
+            <div class="plant-card-body">
+                <div class="plant-card-name"></div>
+                <div class="plant-card-sci"></div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-plant-card-new">
+        <div class="plant-card plant-card-new" title="Add a new plant">
+            <div class="plant-img-wrap"><span class="plant-fallback" style="font-size: 3rem; color: #4caf50;">➕</span></div>
+            <div class="plant-card-body"><div class="plant-card-name" style="text-align: center; color: #4caf50; font-size: 1rem;">Add New Plant</div></div>
+        </div>
+    </template>
+
+    <template id="tpl-task-item">
+        <li class="task-item">
+            <span class="task-plant"></span>
+            <span class="task-date"></span>
+        </li>
+    </template>
+
+    <template id="tpl-task-empty">
+        <li class="task-item task-empty">All caught up! 🎉</li>
+    </template>
+
+    <template id="tpl-action-plant-item">
+        <li>
+            <label>
+                <input type="radio" name="action-plant" value="">
+                <span class="action-plant-name"></span>
+                <em class="action-plant-sci" style="color:#aaa;font-size:0.8em"></em>
+            </label>
+        </li>
+    </template>
+
+    <template id="tpl-action-no-plants">
+        <li style="color:#aaa;font-style:italic;padding:8px;">No plants found.</li>
+    </template>
 
     <!-- Scripts — display.js loads the navbar, dashboard.js does everything else -->
     <script src="display.js"></script>

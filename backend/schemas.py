@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import date
-from typing import Optional
+from typing import Optional, List
 
 class UserCreate(BaseModel):
     username: str
@@ -71,5 +71,6 @@ class UserUpdate(BaseModel):
     lastname: Optional[str] = None
     email: Optional[str] = None
 
+# a backup option would be nice
 
 

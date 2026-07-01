@@ -9,7 +9,7 @@ class User(Base):
     
     # 'id' acts like SERIAL, but 'username' is your actual primary key based on your SQL
     id = Column(Integer, Identity(), unique=True)
-    username = Column(String(20), primary_key=True)
+    username = Column(String(20), primary_key=True, nullable=False)
     email = Column(String(80), nullable=False)
     nickname = Column(String(20))
     firstname = Column(String(40), nullable=False)
@@ -28,7 +28,7 @@ class Plant(Base):
     plant_id = Column(Integer, primary_key=True, autoincrement=True)
     
     # Foreign key linking back to the users table
-    username: str = Column(String(20), ForeignKey('users.username'), nullable=False)
+    username: str = Column(String(20), ForeignKey('users.username', onupdate="CASCADE"), nullable=False)
     
     # Plant Details
     plant_name = Column(String(100), nullable=False)

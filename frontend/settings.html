@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <title>Settings - Authentication</title>
     <!-- Link to our new centralized CSS file -->
+    <link rel="stylesheet" href="settings.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
+<div class="settings-wrapper">
     <!-- Inject the Navbar right here -->
     <div id="navbar"></div>
 
@@ -57,18 +58,47 @@
 
     <!-- View for users who ARE logged in -->
     <div id="authenticated-view" style="display: none;">
-        <div class="auth-container">
-            <div class="auth-card" style="text-align: center;">
-                <h1>Account Settings</h1>
-                <p style="margin-bottom: 20px; color: #4caf50;">You are currently logged in!</p>
-                <button type="button" id="logout-btn">Log Out</button>
+        <h1>Account Settings</h1>
+        <div class="edit-view">
+            <div class="edit-card">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="edit-username" placeholder="caleb_is_cool">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="edit-email" placeholder="something@icloud.com">
+                </div>
+                <div class="form-group">
+                    <label>Nickname</label>
+                    <input type="text" id="edit-nickname" placeholder="CZ">
+                </div>
+                <div class="form-group">
+                    <label>Firstname</label>
+                    <input type="text" id="edit-firstname" placeholder="Caleb">
+                </div>
+                <div class="form-group">
+                    <label>Lastname</label>
+                    <input type="text" id="edit-lastname" placeholder="Zaleski">
+                </div>
+                <div class="form-group">
+                    <label>Current Password (required to save changes)</label>
+                    <input type="password" id="edit-current-password" placeholder="Enter your current password">
+                </div>
+                <div class="submit-btn">
+                    <button type="button" id="save-settings-btn" class="modal-submit-btn">Save Changes</button>
+                    <button type="button" id="logout-btn">Log Out</button>
+                </div>
+                <p id="settings-feedback" style="margin-top: 10px; font-weight: 500;"></p>
             </div>
         </div>
+
+
     </div>
+</div>
 
     <!-- Scripts to load navbar and handle login logic -->
     <script>
-        // Because settings.html and navbar.html are in the SAME folder, we don't need a path!
         fetch('navbar.html')
           .then(response => response.text())
           .then(data => {
@@ -88,7 +118,7 @@
         if (token && token !== "undefined" && token !== "null") {
             // Hide the login/signup form and show the logged-in settings
             document.getElementById('unauthenticated-view').style.display = 'none';
-            document.getElementById('authenticated-view').style.display = 'block';
+            document.getElementById('authenticated-view').style.display = 'flex';
         }
 
         // Add logout functionality for the new button
@@ -97,7 +127,9 @@
             localStorage.removeItem("firstname");
             window.location.reload(); // Refresh the page to show the login screen again
         });
+
     </script>
     <script src="dashboard.js"></script>
+    <script src="display.js"></script>
 </body>
 </html>

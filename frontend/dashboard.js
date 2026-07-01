@@ -26,7 +26,12 @@ async function getAllPlants() {
         headers: { "content-type": "application/json", ...getAuthHeader() }
     });
     const result = await resp.json();
-    if (!resp.ok) throw new Error(result.detail || "Failed to fetch plants");
+    if (resp.status === 401) {
+            await LogOut();
+            throw new Error("Session expired. Please log in again.");
+        }
+
+        if (!resp.ok) { throw new Error(result.detail || "Failed to fetch plants")}
     return result.plants;
 }
 
@@ -41,7 +46,13 @@ async function getPlant(plantId) {
         headers: { "content-type": "application/json", ...getAuthHeader() }
     });
     const result = await resp.json();
-    if (!resp.ok) throw new Error(result.detail || "Failed to fetch plant");
+
+    if (resp.status === 401) {
+            await LogOut();
+            throw new Error("Session expired. Please log in again.");
+        }
+
+        if (!resp.ok) { throw new Error(result.detail || "Failed to fetch plant")}
     return result.plant;
 }
 
@@ -58,8 +69,14 @@ async function updatePlant(plantId, data) {
         body: JSON.stringify(data)
     });
     const result = await payload.json();
-    if (!payload.ok) throw new Error(result.detail || "Failed to update plant");
-    return result;
+    if (payload.status === 401) {
+            await LogOut();
+            throw new Error("Session expired. Please log in again.");
+        }
+
+        // Catch any other general errors
+        if (!payload.ok) { throw new Error(result.detail || "Failed to update plant")}
+        return result;
 }
 
 // ─── Image Upload ────────────────────────────────────────────────────────────
@@ -76,9 +93,19 @@ async function uploadImageFile(file) {
     });
     
     const result = await payload.json();
-    if (!payload.ok) throw new Error(result.detail || "Failed to upload image");
-    return result.image_url;
-}
+
+        if (payload.status === 401) {
+            await LogOut();
+            throw new Error("Session expired. Please log in again.");
+        }
+
+        // Catch any other general errors
+        if (!payload.ok) {
+            throw new Error(result.detail || "Failed to upload image");
+        }
+        return result.image_url;
+    }
+
 
 /**
  * PATCH /water_plant/{plantId}
@@ -90,7 +117,12 @@ async function waterPlant(plantId) {
         headers: { "content-type": "application/json", ...getAuthHeader() }
     });
     const result = await resp.json();
-    if (!resp.ok) throw new Error(result.detail || "Failed to water plant");
+    if (resp.status === 401) {
+            await LogOut();
+            throw new Error("Session expired. Please log in again.");
+        }
+
+        if (!resp.ok) { throw new Error(result.detail || "Failed to water plant")}
     return result;
 }
 
@@ -104,7 +136,12 @@ async function fertilizePlant(plantId) {
         headers: { "content-type": "application/json", ...getAuthHeader() }
     });
     const result = await resp.json();
-    if (!resp.ok) throw new Error(result.detail || "Failed to fertilize plant");
+    if (resp.status === 401) {
+            await LogOut();
+            throw new Error("Session expired. Please log in again.");
+        }
+
+        if (!resp.ok) { throw new Error(result.detail || "Failed to fertilize plant")}
     return result;
 }
 
@@ -118,7 +155,12 @@ async function repotPlant(plantId) {
         headers: { "content-type": "application/json", ...getAuthHeader() }
     });
     const result = await resp.json();
-    if (!resp.ok) throw new Error(result.detail || "Failed to repot plant");
+    if (resp.status === 401) {
+            await LogOut();
+            throw new Error("Session expired. Please log in again.");
+        }
+
+        if (!resp.ok) { throw new Error(result.detail || "Failed to repot plant")}
     return result;
 }
 
@@ -134,9 +176,47 @@ async function createPlant(data) {
         body: JSON.stringify(data)
     });
     const result = await resp.json();
-    if (!resp.ok) throw new Error(result.detail || "Failed to create plant");
+    if (resp.status === 401) {
+            await LogOut();
+            throw new Error("Session expired. Please log in again.");
+        }
+
+        if (!resp.ok) { throw new Error(result.detail || "Failed to create plant")}
     return result;
 }
+async function getUser() {
+    const response = await fetch(`/get_user`, {
+        method: "GET",
+        headers: { "content-type": "application/json", ...getAuthHeader() },
+    });
+    const result = await response.json();
+    if (response.status === 401) {
+        await LogOut();
+        throw new Error("Session expired. Please log in again.");
+    }
+    if (!response.ok) {
+        throw new Error(result.detail || "Failed to get user");
+    }
+    return result.user;
+}
+
+async function updateUser(data) {
+    const payload = await fetch(`/update_user/`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json", ...getAuthHeader() },
+        body: JSON.stringify(data)
+    });
+    const result = await payload.json();
+    if (payload.status === 401) {
+        await LogOut();
+        throw new Error("Session expired. Please log in again.");
+    }
+    if (!payload.ok)
+        { throw new Error(result.detail || "Failed to update user")}
+    return result;
+}
+
+
 
 // ── SECTION 2: Button Event Listeners (settings / auth pages) ────────────────
 
@@ -226,11 +306,11 @@ document.getElementById("login-btn")?.addEventListener("click", async function l
 
 // ─── Small Utilities (UI only, not API) ──────────────────────────────────────
 
-/** Formats "YYYY-MM-DD" → "Jul 4" */
+
 function fmtDate(dateStr) {
     if (!dateStr) return null;
     const d = new Date(dateStr + "T00:00:00"); // pin to local midnight
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 /** Returns true if a date string is in the past (overdue). */
@@ -258,35 +338,40 @@ let currentAction = null;          // "water" | "fertilize" | "repot"
 
 /** Builds one plant card DOM element. */
 function buildPlantCard(plant) {
-    const card = document.createElement("div");
-    card.className = "plant-card";
-    
-    // We just write simple HTML here instead of creating elements one by one
-    const imageHtml = plant.image_url 
-        ? `<img src="${plant.image_url}" alt="${plant.plant_name}" onerror="this.outerHTML='<span class=\\'plant-fallback\\'>🪴</span>'">`
-        : `<span class="plant-fallback">🪴</span>`;
+    const template = document.getElementById('tpl-plant-card');
+    const clone = template.content.cloneNode(true);
+    const card = clone.querySelector('.plant-card');
+
+    const imgWrap = clone.querySelector('.plant-img-wrap');
+    if (plant.image_url) {
+        const img = document.createElement('img');
+        img.src = plant.image_url;
+        img.alt = plant.plant_name;
+        img.onerror = function() {
+            imgWrap.innerHTML = '<span class="plant-fallback">🪴</span>';
+        };
+        imgWrap.appendChild(img);
+    } else {
+        imgWrap.innerHTML = '<span class="plant-fallback">🪴</span>';
+    }
+
+    clone.querySelector('.plant-card-name').textContent = plant.plant_name;
+    clone.querySelector('.plant-card-sci').textContent = plant.scientific_name || "—";
 
     const struggling = /struggle|bad|poor|sick|dying/i.test(plant.health);
-    const badgeHtml = plant.health 
-        ? `<span class="health-badge ${struggling ? 'struggling' : ''}">${plant.health}</span>`
-        : ``;
+    if (plant.health) {
+        const badge = document.createElement('span');
+        badge.className = `health-badge ${struggling ? 'struggling' : ''}`;
+        badge.textContent = plant.health;
+        clone.querySelector('.plant-card-body').appendChild(badge);
+    }
 
-    card.innerHTML = `
-        <div class="plant-img-wrap">${imageHtml}</div>
-        <div class="plant-card-body">
-            <div class="plant-card-name">${plant.plant_name}</div>
-            <div class="plant-card-sci">${plant.scientific_name || "—"}</div>
-            ${badgeHtml}
-        </div>
-    `;
-
-    // Add the click listener to the edit button we just created in the HTML
     card.addEventListener("click", (e) => {
         e.stopPropagation();
         openEditModal(plant.plant_id);
     });
 
-    return card;
+    return clone;
 }
 
 /** Renders all plant cards into #plant-grid. */
@@ -298,27 +383,15 @@ function renderPlantGrid(plants) {
     plants.forEach(p => grid.appendChild(buildPlantCard(p)));
 
     // Create the "Add New Plant" card to always sit at the end
-    const newCard = document.createElement("div");
-    newCard.className = "plant-card plant-card-new";
-    newCard.title = "Add a new plant";
+    const template = document.getElementById('tpl-plant-card-new');
+    const clone = template.content.cloneNode(true);
+    const newCard = clone.querySelector('.plant-card-new');
     
-    // Instead of opening a modal, we redirect to the settings page where the full form is
     newCard.addEventListener("click", () => {
         openCreateModal();
     });
 
-    const imgWrap = document.createElement("div");
-    imgWrap.className = "plant-img-wrap";
-    imgWrap.innerHTML = `<span class="plant-fallback" style="font-size: 3rem; color: #4caf50;">➕</span>`;
-
-    const body = document.createElement("div");
-    body.className = "plant-card-body";
-    body.innerHTML = `<div class="plant-card-name" style="text-align: center; color: #4caf50; font-size: 1rem;">Add New Plant</div>`;
-
-    newCard.appendChild(imgWrap);
-    newCard.appendChild(body);
-    
-    grid.appendChild(newCard);
+    grid.appendChild(clone);
 }
 
 // ─── 2. Upcoming Tasks List ──────────────────────────────────────────────────
@@ -339,19 +412,22 @@ function renderTaskList(plants) {
     tasks.sort((a, b) => new Date(a.dateStr) - new Date(b.dateStr));
 
     if (!tasks.length) {
-        list.innerHTML = `<li class="task-item task-empty">All caught up! 🎉</li>`;
+        const emptyTemplate = document.getElementById('tpl-task-empty');
+        list.appendChild(emptyTemplate.content.cloneNode(true));
         return;
     }
 
+    const taskTemplate = document.getElementById('tpl-task-item');
     tasks.forEach(t => {
         const overdue = isOverdue(t.dateStr);
-        const li = document.createElement("li");
-        li.className = `task-item${overdue ? " overdue" : ""}`;
-        li.innerHTML = `
-            <span class="task-plant">${t.type} — ${t.plantName}</span>
-            <span class="task-date">${overdue ? "⚠️ Overdue: " : "Due: "}${fmtDate(t.dateStr)}</span>
-        `;
-        list.appendChild(li);
+        const clone = taskTemplate.content.cloneNode(true);
+        const li = clone.querySelector('li');
+        if (overdue) li.classList.add('overdue');
+        
+        clone.querySelector('.task-plant').textContent = `${t.type} — ${t.plantName}`;
+        clone.querySelector('.task-date').textContent = `${overdue ? "⚠️ Overdue: " : "Due: "}${fmtDate(t.dateStr)}`;
+        
+        list.appendChild(clone);
     });
 }
 
@@ -370,16 +446,18 @@ function openActionModal(action) {
 
     actionPlantList.innerHTML = "";
     if (!cachedPlants.length) {
-        actionPlantList.innerHTML = `<li style="color:#aaa;font-style:italic;padding:8px;">No plants found.</li>`;
+        const emptyTemplate = document.getElementById('tpl-action-no-plants');
+        actionPlantList.appendChild(emptyTemplate.content.cloneNode(true));
     } else {
+        const itemTemplate = document.getElementById('tpl-action-plant-item');
         cachedPlants.forEach(p => {
-            const li = document.createElement("li");
-            li.innerHTML = `
-                <label>
-                    <input type="radio" name="action-plant" value="${p.plant_id}">
-                    ${p.plant_name}${p.scientific_name ? ` <em style="color:#aaa;font-size:0.8em">(${p.scientific_name})</em>` : ""}
-                </label>`;
-            actionPlantList.appendChild(li);
+            const clone = itemTemplate.content.cloneNode(true);
+            clone.querySelector('input').value = p.plant_id;
+            clone.querySelector('.action-plant-name').textContent = p.plant_name;
+            if (p.scientific_name) {
+                clone.querySelector('.action-plant-sci').textContent = `(${p.scientific_name})`;
+            }
+            actionPlantList.appendChild(clone);
         });
     }
 
@@ -392,7 +470,7 @@ function closeActionModal() {
 }
 
 /** On "Confirm" — call the right function from post.js */
-actionSubmitBtn.addEventListener("click", async () => {
+actionSubmitBtn?.addEventListener("click", async () => {
     const selected = actionPlantList.querySelector("input[type='radio']:checked");
     if (!selected) { alert("Please select a plant first."); return; }
 
@@ -422,7 +500,7 @@ document.getElementById("quick-water-btn")?.addEventListener("click",     () => 
 document.getElementById("quick-fertilize-btn")?.addEventListener("click", () => openActionModal("fertilize"));
 document.getElementById("quick-repot-btn")?.addEventListener("click",     () => openActionModal("repot"));
 document.getElementById("action-modal-close")?.addEventListener("click",  closeActionModal);
-actionBackdrop.addEventListener("click", (e) => { if (e.target === actionBackdrop) closeActionModal(); });
+actionBackdrop?.addEventListener("click", (e) => { if (e.target === actionBackdrop) closeActionModal(); });
 
 // ─── 4. Edit Plant Modal ─────────────────────────────────────────────────────
 
@@ -462,7 +540,7 @@ function closeEditModal() {
 
 document.getElementById("edit-modal-close")?.addEventListener("click",  closeEditModal);
 document.getElementById("edit-cancel-btn")?.addEventListener("click",   closeEditModal);
-editBackdrop.addEventListener("click", (e) => { if (e.target === editBackdrop) closeEditModal(); });
+editBackdrop?.addEventListener("click", (e) => { if (e.target === editBackdrop) closeEditModal(); });
 
 /** Save button — calls updatePlant() from post.js */
 document.getElementById("edit-save-btn")?.addEventListener("click", async () => {
@@ -547,7 +625,7 @@ function closeCreateModal() {
 
 document.getElementById("create-modal-close")?.addEventListener("click",  closeCreateModal);
 document.getElementById("create-cancel-btn")?.addEventListener("click",   closeCreateModal);
-createBackdrop.addEventListener("click", (e) => { if (e.target === createBackdrop) closeCreateModal(); });
+createBackdrop?.addEventListener("click", (e) => { if (e.target === createBackdrop) closeCreateModal(); });
 
 /** Save button — calls createPlant() from post.js */
 document.getElementById("create-save-btn")?.addEventListener("click", async () => {
@@ -620,12 +698,136 @@ async function refreshDashboard() {
 
     const token = localStorage.getItem("token");
     if (!token || token === "null" || token === "undefined") {
-        document.getElementById("plant-grid").innerHTML =
-            `<p class="grid-empty">Please <a href="settings.html" style="color:#4caf50;font-weight:600;">log in</a> to see your plants. 🔐</p>`;
-        document.getElementById("task-list").innerHTML =
-            `<li class="task-item task-empty">Log in to see upcoming tasks.</li>`;
+        const gridTemplate = document.getElementById('tpl-logged-out-grid');
+        const tasksTemplate = document.getElementById('tpl-logged-out-tasks');
+        
+        const plantGrid = document.getElementById("plant-grid");
+        plantGrid.innerHTML = "";
+        if (gridTemplate) plantGrid.appendChild(gridTemplate.content.cloneNode(true));
+        
+        const taskList = document.getElementById("task-list");
+        taskList.innerHTML = "";
+        if (tasksTemplate) taskList.appendChild(tasksTemplate.content.cloneNode(true));
+        
         return;
     }
 
     await refreshDashboard();
 })();
+
+// ────────────────────────────log out──────────────────────────────
+async function LogOut() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("firstname");
+
+    const plantGrid = document.getElementById("plant-grid");
+    const gridTemplate = document.getElementById('tpl-logged-out-grid');
+    if (plantGrid && gridTemplate) {
+        plantGrid.innerHTML = "";
+        plantGrid.appendChild(gridTemplate.content.cloneNode(true));
+    }
+
+    const taskList = document.getElementById("task-list");
+    const tasksTemplate = document.getElementById('tpl-logged-out-tasks');
+    if (taskList && tasksTemplate) {
+        taskList.innerHTML = "";
+        taskList.appendChild(tasksTemplate.content.cloneNode(true));
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+// -------------------SETTINGS-----------------------------------
+(async function initSettings() {
+    // Only run if we are on the settings page and logged in
+    if (!document.getElementById("edit-username")) return;
+    
+    const token = localStorage.getItem("token");
+    if (!token || token === "null" || token === "undefined") return;
+
+    try {
+        const user = await getUser();
+        if (user) {
+            document.getElementById("edit-username").value = user.username || "";
+            document.getElementById("edit-email").value = user.email || "";
+            document.getElementById("edit-nickname").value = user.nickname || "";
+            document.getElementById("edit-firstname").value = user.firstname || "";
+            document.getElementById("edit-lastname").value = user.lastname || "";
+        }
+    } catch (err) {
+        console.error("Failed to load user settings:", err);
+    }
+})();
+
+document.getElementById("save-settings-btn")?.addEventListener("click", async () => {
+    const feedback = document.getElementById("settings-feedback");
+    const saveBtn = document.getElementById("save-settings-btn");
+    
+    const password = document.getElementById("edit-current-password").value;
+    if (!password) {
+        feedback.textContent = "❌ Current password is required to save changes.";
+        feedback.style.color = "#e65100";
+        return;
+    }
+
+    const data = {
+        password: password
+    };
+    
+    const username = document.getElementById("edit-username").value;
+    if (username) data.username = username;
+    
+    const email = document.getElementById("edit-email").value;
+    if (email) data.email = email;
+    
+    const nickname = document.getElementById("edit-nickname").value;
+    if (nickname) data.nickname = nickname;
+    
+    const firstname = document.getElementById("edit-firstname").value;
+    if (firstname) data.firstname = firstname;
+    
+    const lastname = document.getElementById("edit-lastname").value;
+    if (lastname) data.lastname = lastname;
+
+    saveBtn.textContent = "Saving...";
+    saveBtn.disabled = true;
+    feedback.textContent = "";
+
+    try {
+        const result = await updateUser(data);
+        
+        // If the backend sent a new token (because the username changed), save it!
+        if (result.token) {
+            localStorage.setItem("token", result.token);
+        }
+        
+        feedback.textContent = "✅ Settings saved successfully!";
+        feedback.style.color = "#388e3c";
+        
+        // If firstname was updated, update localStorage and navbar
+        if (data.firstname) {
+            localStorage.setItem("firstname", data.firstname);
+            const nameElement = document.getElementById('nav-firstname');
+            if (nameElement) nameElement.textContent = data.firstname;
+        }
+        
+        // Clear password field for safety
+        document.getElementById("edit-current-password").value = "";
+    } catch (err) {
+        feedback.textContent = "❌ " + (err.message || "Failed to update settings");
+        feedback.style.color = "#e65100";
+    } finally {
+        saveBtn.textContent = "Save Changes";
+        saveBtn.disabled = false;
+    }
+});

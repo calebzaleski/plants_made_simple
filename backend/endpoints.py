@@ -1,7 +1,7 @@
 import os
 import uuid
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from fastapi import UploadFile, File, Header, Depends
+from fastapi import UploadFile, File, Header, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
 import fastapi
 import logging
@@ -182,8 +182,9 @@ async def upload_image(image_file: UploadFile = File(...)):
         logger.error(f"Failed to upload image: {e}")
         raise fastapi.HTTPException(status_code=500, detail="Failed to save image locally")
 
+
 @app.get("/get_image")
-async def get_image(data: schemas.Image):
+def get_image(data: schemas.Image):
     session = Session()
     try:
         plant = session.query(models.Plant).filter_by(username=data.username, plant_id=data.plant_number).first()
@@ -207,7 +208,7 @@ async def get_image(data: schemas.Image):
         session.close()
 
 @app.post("/create_plant")
-async def create_plant(data: schemas.PlantCreate, user: str = Depends(security.get_user)):
+def create_plant(data: schemas.PlantCreate, user: str = Depends(security.get_user)):
     session = Session()
     try:
 
@@ -233,11 +234,12 @@ async def create_plant(data: schemas.PlantCreate, user: str = Depends(security.g
         session.rollback()
         logger.error(f"Failed to create plant. Error: {e}")
         raise fastapi.HTTPException(status_code=400, detail=f"Failed to create plant. Error: {e}")
+
     finally:
         session.close()
 
-@app.patch("/update_plant/{plant_id}")
-async def update_plant(data: schemas.PlantUpdate, plant_id: int, user: str = Depends(security.get_user)):
+@app.patch("/update_plant/{plant_id}") #make it so that when the pot water or fertlizer frequency are changed, it changes the next water dates based on the last water
+def update_plant(data: schemas.PlantUpdate, plant_id: int, user: str = Depends(security.get_user)):
     session = Session()
     try:
 
@@ -269,7 +271,7 @@ async def update_plant(data: schemas.PlantUpdate, plant_id: int, user: str = Dep
         session.close()
 
 @app.patch("/update_user/")
-async def update_user(data: schemas.UserUpdate, username: str = Depends(security.get_user)):
+def update_user(data: schemas.UserUpdate, username: str = Depends(security.get_user)):
     session = Session()
     try:
         user = session.query(models.User).filter_by(username=username).first()
@@ -286,7 +288,14 @@ async def update_user(data: schemas.UserUpdate, username: str = Depends(security
         for item, value in new_data.items():
             setattr(user, item, value)
 
-        session.add(user)
+        session.commit()
+        
+        # If the username was changed, we must issue a new token!
+        new_token = None
+        if data.username and data.username != username:
+            new_token = security.create_token({"subject": data.username})
+
+        return {"success": True, "message": "User settings updated!", "token": new_token}
     except IntegrityError as e:
         session.rollback()
         logger.error(f"Failed to update user. Error: {e}")
@@ -376,7 +385,9 @@ def all_plants(user: str = Depends(security.get_user)):
         logger.info(f"Successfully fetched {len(plants)} plants")
         # Serialize to plain dicts HERE, while the session is still open
         plants_data = [
-            {c.name: getattr(p, c.name) for c in models.Plant.__table__.columns}
+            {c.name: getattr(p, c.name) for c in models.Plant.__table__.columns} #change to a schema PlantOut  @app.get("/all_plants/", esponse_model=List[PlantOut]) return plants
+
+
             for p in plants
         ]
         return {"success": True, "plants": plants_data}
@@ -404,11 +415,29 @@ def get_plant(plant_id: int, user: str = Depends(security.get_user)):
     finally:
         session.close()
 
+@app.get("/get_user")
+def get_user(user: str = Depends(security.get_user)):
+    session = Session()
+    try:
+        user = session.query(models.User).filter_by(username=user).first()
+        logger.info(f"Successfully fetched user: {user.username}")
+        if not user:
+            raise fastapi.HTTPException(status_code=404, detail="No user found")
+        
+        user_data = {
+            "username": user.username,
+            "nickname": user.nickname,
+            "firstname": user.firstname,
+            "lastname": user.lastname,
+            "email": user.email
+        }
+        return {"success": True, "user": user_data}
 
-
-
-
-# use pandas to retrieve upnext watering and potings
+    except SQLAlchemyError as e:
+        logger.error(f"Database error while fetching user. Error: {e}")
+        raise fastapi.HTTPException(status_code=500, detail="Database error occurred")
+    finally:
+        session.close()
 
 # Serve the frontend at the root URL (Must be at the VERY BOTTOM or else the backend does load in time for the frontend!)
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
