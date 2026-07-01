@@ -4,33 +4,32 @@ services:
     container_name: postgres_server
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${USER}
-      POSTGRES_PASSWORD: ${PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: plants_db
     ports:
-      - "${HOST_DB_PORT}:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   server:
-    build: 
-      context: backend
-      dockerfile: Dockerfile
+    image: ghcr.io/calebzaleski/plants_made_simple:latest
     container_name: fastapi-server
     restart: unless-stopped
     ports:
-      - "${FASTAPI_PORT}:8000"
-    env_file:
-      - .env
+      - "8000:8000"
     environment:
+      - USER=admin
+      - PASSWORD=mypassword
+      - POSTGRES_DB=plants_db
       - DB_HOST=db
       - TZ=America/New_York
+      # IMPORTANT: Change ALLOWED_ORIGINS to match your server IP/domain
+      - ALLOWED_ORIGINS=http://localhost:8000 
     depends_on:
       - db
     volumes:
       - ./uploaded_images:/app/uploaded_images
-      - ./frontend:/app/frontend
 
 volumes:
   postgres_data:

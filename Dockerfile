@@ -3,14 +3,12 @@ LABEL authors="calebzaleski"
 
 WORKDIR /app
 
-# Copy the files into a folder named 'backend' inside the container
-COPY . ./backend
-
-# Install the requirements from that new folder
+COPY backend/requirements.txt ./backend/
 RUN pip install -r backend/requirements.txt
 RUN pip install --no-cache-dir "fastapi[standard]"
 
-# Tell fastapi to run the file inside the backend folder
+COPY . .
+
 CMD ["fastapi", "run", "backend/endpoints.py", "--host", "0.0.0.0", "--port", "8000"]
 
 EXPOSE 8000
