@@ -1,6 +1,6 @@
 # Plants Made Simple
 
-A FastAPI and Vanilla JS application that helps you keep better track of your plants.
+Plants Made Simple is a lightweight, full-stack web application designed to take the guesswork out of plant care. It allows you to easily track watering schedules, manage fertilization, and save custom profiles with images for your entire plant collection.
 
 ## Dockercompose
 
