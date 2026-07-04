@@ -24,8 +24,9 @@ services:
       - POSTGRES_DB=plants_db
       - DB_HOST=db
       - TZ=America/New_York
-      # IMPORTANT: Change ALLOWED_ORIGINS to match your server IP/domain
-      - ALLOWED_ORIGINS=http://localhost:8000 
+      - SECRET_KEY=your_super_secret_key_change_me
+      - ALGORITHM=HS256
+      - ALLOWED_ORIGINS=http://localhost:8000
     depends_on:
       - db
     volumes:

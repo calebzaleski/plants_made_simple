@@ -30,7 +30,8 @@ Plants Made Simple is a lightweight, full-stack web application designed to take
       - POSTGRES_DB=plants_db
       - DB_HOST=db
       - TZ=America/New_York
-      # IMPORTANT: Change ALLOWED_ORIGINS to match your server IP/domain
+      - SECRET_KEY=your_super_secret_key_change_me
+      - ALGORITHM=HS256
       - ALLOWED_ORIGINS=http://localhost:8000 
     depends_on:
       - db
@@ -41,6 +42,7 @@ volumes:
   postgres_data:
   ```
 
+1. update SECRET_KEY to anything over 32 characters. 
 
 2. Open your terminal in that folder and run:
 ```bash
