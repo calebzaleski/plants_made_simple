@@ -253,7 +253,7 @@ document.getElementById("create-btn")?.addEventListener("click", async function 
     if (result.success === true) {
         localStorage.setItem("token", result.token); 
         localStorage.setItem("firstname", data.firstname); // Grabs from the input box!
-        window.location.reload(); // Auto-refresh!
+        window.location.href = "index.html"
     }
 });
 
@@ -283,7 +283,7 @@ document.getElementById("login-btn")?.addEventListener("click", async function l
         }
         
         // Auto-refresh the page to show the logged-in screen!
-        window.location.reload();
+        window.location.href = "index.html"
     }
 });
 
