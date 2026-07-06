@@ -13,6 +13,7 @@ from backend import schemas
 from backend import models
 from backend import security
 from datetime import date, timedelta
+from typing import List
 
 
 #logger stuff
@@ -220,6 +221,14 @@ def create_plant(data: schemas.PlantCreate, user: str = Depends(security.get_use
         if not username:
             raise fastapi.HTTPException(status_code=404, detail="User not found")
 
+        today = date.today()
+        if new_plant.water_frequency and not new_plant.date_next_water:
+            new_plant.date_next_water = today + timedelta(days=new_plant.water_frequency)
+        if new_plant.fertilizer_frequency and not new_plant.date_next_fertilized:
+            new_plant.date_next_fertilized = today + timedelta(days=new_plant.fertilizer_frequency)
+        if new_plant.pot_frequency and not new_plant.date_next_pot:
+            new_plant.date_next_pot = today + timedelta(days=new_plant.pot_frequency)
+
         username.plants += 1
         session.add(new_plant)
         session.commit()
@@ -238,7 +247,7 @@ def create_plant(data: schemas.PlantCreate, user: str = Depends(security.get_use
     finally:
         session.close()
 
-@app.patch("/update_plant/{plant_id}") #make it so that when the pot water or fertlizer frequency are changed, it changes the next water dates based on the last water
+@app.patch("/update_plant/{plant_id}")
 def update_plant(data: schemas.PlantUpdate, plant_id: int, user: str = Depends(security.get_user)):
     session = Session()
     try:
@@ -250,7 +259,14 @@ def update_plant(data: schemas.PlantUpdate, plant_id: int, user: str = Depends(s
         if user != plant.username:
             raise fastapi.HTTPException(status_code=403, detail="no permission")
 
-        
+        today = date.today()
+        if plant.water_frequency and not plant.date_next_water:
+            plant.date_next_water = today + timedelta(days=plant.water_frequency)
+        if plant.fertilizer_frequency and not plant.date_next_fertilized:
+            plant.date_next_fertilized = today + timedelta(days=plant.fertilizer_frequency)
+        if plant.pot_frequency and not plant.date_next_pot:
+            plant.date_next_pot = today + timedelta(days=plant.pot_frequency)
+
         update = data.model_dump(exclude_unset=True)
 
         for item, value in update.items():
@@ -377,20 +393,13 @@ def pot_plant(plant_id: int, user: str = Depends(security.get_user)):
         logger.error(f"Failed to fetch plant. Error: {e}")
         raise fastapi.HTTPException(status_code=404, detail="Plant not found")
 
-@app.get("/all_plants/")
+@app.get("/all_plants/", response_model=list[schemas.PlantOut])
 def all_plants(user: str = Depends(security.get_user)):
     session = Session()
     try:
         plants = session.query(models.Plant).filter_by(username=user).all()
         logger.info(f"Successfully fetched {len(plants)} plants")
-        # Serialize to plain dicts HERE, while the session is still open
-        plants_data = [
-            {c.name: getattr(p, c.name) for c in models.Plant.__table__.columns} #change to a schema PlantOut  @app.get("/all_plants/", esponse_model=List[PlantOut]) return plants
-
-
-            for p in plants
-        ]
-        return {"success": True, "plants": plants_data}
+        return plants
     except SQLAlchemyError as e:
         logger.error(f"Database error while fetching plants: {e}")
         raise fastapi.HTTPException(status_code=500, detail="Database error occurred")
@@ -398,7 +407,7 @@ def all_plants(user: str = Depends(security.get_user)):
         session.close()
 
 
-@app.get("/get_plant/{plant_id}")
+@app.get("/get_plant/{plant_id}", response_model=schemas.PlantOut)
 def get_plant(plant_id: int, user: str = Depends(security.get_user)):
     session = Session()
     try:
@@ -406,9 +415,7 @@ def get_plant(plant_id: int, user: str = Depends(security.get_user)):
         logger.info(f"Successfully fetched plant: {plant_id}")
         if not plant:
             raise fastapi.HTTPException(status_code=404, detail="Plant not found")
-        # Serialize to a plain dict while the session is still open
-        plant_data = {c.name: getattr(plant, c.name) for c in models.Plant.__table__.columns}
-        return {"success": True, "plant_id": plant.plant_id, "plant": plant_data}
+        return {"success": True, "plant_id": plant.plant_id, "plant": plant}
     except SQLAlchemyError as e:
         logger.error(f"Database error while fetching plant. Error: {e}")
         raise fastapi.HTTPException(status_code=500, detail="Database error occurred")
