@@ -415,7 +415,7 @@ def get_plant(plant_id: int, user: str = Depends(security.get_user)):
         logger.info(f"Successfully fetched plant: {plant_id}")
         if not plant:
             raise fastapi.HTTPException(status_code=404, detail="Plant not found")
-        return {"success": True, "plant_id": plant.plant_id, "plant": plant}
+        return plant
     except SQLAlchemyError as e:
         logger.error(f"Database error while fetching plant. Error: {e}")
         raise fastapi.HTTPException(status_code=500, detail="Database error occurred")

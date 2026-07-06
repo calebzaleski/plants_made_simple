@@ -32,7 +32,7 @@ async function getAllPlants() {
         }
 
         if (!resp.ok) { throw new Error(result.detail || "Failed to fetch plants")}
-    return result.plants;
+    return result;
 }
 
 /**
@@ -53,7 +53,7 @@ async function getPlant(plantId) {
         }
 
         if (!resp.ok) { throw new Error(result.detail || "Failed to fetch plant")}
-    return result.plant;
+    return result;
 }
 
 /**
