@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import date
 from typing import Optional, List
 
@@ -71,6 +71,25 @@ class UserUpdate(BaseModel):
     lastname: Optional[str] = None
     email: Optional[str] = None
 
-# a backup option would be nice
-
-
+class PlantOut(BaseModel):
+    success: Optional[bool] = None
+    plant_id: Optional[int] = None
+    plant_name: str
+    scientific_name: str
+    age: int  # years
+    image_url: Optional[str] = None
+    health: Optional[str] = None
+    notes: Optional[str] = None
+    light_needs: Optional[str] = None
+    fertilizer_needs: Optional[str] = None
+    date_acquired: Optional[date] = None
+    date_last_water: Optional[date] = None
+    date_next_water: Optional[date] = None
+    date_last_pot: Optional[date] = None
+    pot_frequency: Optional[int] = None
+    date_next_pot: Optional[date] = None
+    water_frequency: Optional[int] = None
+    date_last_fertilized: Optional[date] = None
+    fertilizer_frequency: Optional[int] = None
+    date_next_fertilized: Optional[date] = None
+    model_config = ConfigDict(from_attributes=True)

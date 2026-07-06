@@ -13,6 +13,7 @@ from backend import schemas
 from backend import models
 from backend import security
 from datetime import date, timedelta
+from typing import List
 
 
 #logger stuff
@@ -392,20 +393,13 @@ def pot_plant(plant_id: int, user: str = Depends(security.get_user)):
         logger.error(f"Failed to fetch plant. Error: {e}")
         raise fastapi.HTTPException(status_code=404, detail="Plant not found")
 
-@app.get("/all_plants/")
+@app.get("/all_plants/", response_model=list[schemas.PlantOut])
 def all_plants(user: str = Depends(security.get_user)):
     session = Session()
     try:
         plants = session.query(models.Plant).filter_by(username=user).all()
         logger.info(f"Successfully fetched {len(plants)} plants")
-        # Serialize to plain dicts HERE, while the session is still open
-        plants_data = [
-            {c.name: getattr(p, c.name) for c in models.Plant.__table__.columns}
-
-
-            for p in plants
-        ]
-        return {"success": True, "plants": plants_data}
+        return plants
     except SQLAlchemyError as e:
         logger.error(f"Database error while fetching plants: {e}")
         raise fastapi.HTTPException(status_code=500, detail="Database error occurred")
@@ -413,7 +407,7 @@ def all_plants(user: str = Depends(security.get_user)):
         session.close()
 
 
-@app.get("/get_plant/{plant_id}")
+@app.get("/get_plant/{plant_id}", response_model=schemas.PlantOut)
 def get_plant(plant_id: int, user: str = Depends(security.get_user)):
     session = Session()
     try:
@@ -421,8 +415,7 @@ def get_plant(plant_id: int, user: str = Depends(security.get_user)):
         logger.info(f"Successfully fetched plant: {plant_id}")
         if not plant:
             raise fastapi.HTTPException(status_code=404, detail="Plant not found")
-        plant_data = {c.name: getattr(plant, c.name) for c in models.Plant.__table__.columns}
-        return {"success": True, "plant_id": plant.plant_id, "plant": plant_data}
+        return {"success": True, "plant_id": plant.plant_id, "plant": plant}
     except SQLAlchemyError as e:
         logger.error(f"Database error while fetching plant. Error: {e}")
         raise fastapi.HTTPException(status_code=500, detail="Database error occurred")
