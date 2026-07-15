@@ -26,13 +26,14 @@ async function getAllPlants() {
         headers: { "content-type": "application/json", ...getAuthHeader() }
     });
     const result = await resp.json();
+    console.log(result);
     if (resp.status === 401) {
             await LogOut();
             throw new Error("Session expired. Please log in again.");
         }
 
         if (!resp.ok) { throw new Error(result.detail || "Failed to fetch plants")}
-    return result;
+    return result.plants || result;
 }
 
 /**
@@ -379,7 +380,6 @@ function renderPlantGrid(plants) {
     const grid = document.getElementById("plant-grid");
     grid.innerHTML = "";
 
-    // Add all existing plants first
     plants.forEach(p => grid.appendChild(buildPlantCard(p)));
 
     // Create the "Add New Plant" card to always sit at the end
@@ -471,10 +471,10 @@ function closeActionModal() {
 
 /** On "Confirm" — call the right function from post.js */
 actionSubmitBtn?.addEventListener("click", async () => {
-    const selected = actionPlantList.querySelector("input[type='radio']:checked");
+    const selected = [...actionPlantList.querySelectorAll("input[type='checkbox']:checked")];
     if (!selected) { alert("Please select a plant first."); return; }
 
-    const plantId = selected.value;
+    const plantIds = selected.map(el => el.value);
 
     // Map action string → the post.js helper function
     const actionFns = { water: waterPlant, fertilize: fertilizePlant, repot: repotPlant };
@@ -485,7 +485,7 @@ actionSubmitBtn?.addEventListener("click", async () => {
     actionSubmitBtn.disabled = true;
 
     try {
-        await fn(plantId);   // calls waterPlant / fertilizePlant / repotPlant from post.js
+        await Promise.all(plantIds.map(id => fn(id)));   // calls waterPlant / fertilizePlant / repotPlant from post.js
         closeActionModal();
         await refreshDashboard();
     } catch (err) {

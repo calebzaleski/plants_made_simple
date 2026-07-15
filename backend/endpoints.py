@@ -13,8 +13,7 @@ from backend import schemas
 from backend import models
 from backend import security
 from datetime import date, timedelta
-from typing import List
-
+import subprocess
 
 #logger stuff
 logger = logging.getLogger("proxy_server")
@@ -83,6 +82,17 @@ def test_connection():
         logger.error("❌ FAILED to connect!")
         logger.error(f"Error details: {e}")
         return {"success": False, "Results": result}
+
+@app.post("/version")
+def get_current_commit():
+    try:
+        # Gets the short 7-character ID of the latest deployed code
+        commit = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+        logger.info(commit)
+        return commit.decode("utf-8").strip()
+    except Exception as e:
+        return "unknown"
+
 
 @app.post("/create_user")
 def create_user(data: schemas.UserCreate):
@@ -397,7 +407,7 @@ def pot_plant(plant_id: int, user: str = Depends(security.get_user)):
 def all_plants(user: str = Depends(security.get_user)):
     session = Session()
     try:
-        plants = session.query(models.Plant).filter_by(username=user).all()
+        plants = session.query(models.Plant).filter_by(username=user).order_by(models.Plant.date_acquired).all()
         logger.info(f"Successfully fetched {len(plants)} plants")
         return plants
     except SQLAlchemyError as e:
@@ -411,7 +421,7 @@ def all_plants(user: str = Depends(security.get_user)):
 def get_plant(plant_id: int, user: str = Depends(security.get_user)):
     session = Session()
     try:
-        plant = session.query(models.Plant).filter_by(plant_id=plant_id, username=user).first()
+        plant = session.query(models.Plant).filter_by(plant_id=plant_id, username=user).order_by(models.Plant.date_acquired).first()
         logger.info(f"Successfully fetched plant: {plant_id}")
         if not plant:
             raise fastapi.HTTPException(status_code=404, detail="Plant not found")

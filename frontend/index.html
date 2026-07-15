@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-
+  
     <!-- Navbar injected here -->
     <div id="navbar"></div>
 
@@ -99,7 +99,7 @@
                 </div>
                 <div class="form-group">
                     <label>Health Status</label>
-                    <input type="text" id="edit-health" placeholder="Healthy / Struggling…">
+                    <input type="text" id="edit-health" placeholder="Healthy / New…">
                 </div>
                 <div class="form-group">
                     <label>Plant Image</label>
@@ -111,7 +111,7 @@
                 </div>
                 <div class="form-group">
                     <label>Fertilizer Needs</label>
-                    <input type="text" id="edit-fertilizer_needs" placeholder="Monthly…">
+                    <input type="text" id="edit-fertilizer_needs" placeholder="NPK 5-2-2 / very diluted">
                 </div>
                 <div class="form-group">
                     <label>Water Frequency (days)</label>
@@ -119,7 +119,7 @@
                 </div>
                 <div class="form-group">
                     <label>Pot Frequency (days)</label>
-                    <input type="number" id="edit-pot_frequency" placeholder="365">
+                    <input type="number" id="edit-pot_frequency" placeholder="365 / 730">
                 </div>
                 <div class="form-group">
                     <label>Fertilizer Frequency (days)</label>
@@ -127,7 +127,7 @@
                 </div>
                 <div class="form-group form-full">
                     <label>Notes</label>
-                    <textarea id="edit-notes" placeholder="Any extra care notes…" rows="3"></textarea>
+                    <textarea id="edit-notes" placeholder="Any extra notes…" rows="3"></textarea>
                 </div>
             </div>
 
@@ -244,7 +244,7 @@
     <template id="tpl-action-plant-item">
         <li>
             <label>
-                <input type="radio" name="action-plant" value="">
+                <input type="checkbox" name="action-plant" value="">
                 <span class="action-plant-name"></span>
                 <em class="action-plant-sci" style="color:#aaa;font-size:0.8em"></em>
             </label>
