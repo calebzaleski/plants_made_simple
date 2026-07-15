@@ -77,6 +77,7 @@ class PlantOut(BaseModel):
     plant_name: str
     scientific_name: str
     age: int  # years
+    date_created: date
     image_url: Optional[str] = None
     health: Optional[str] = None
     notes: Optional[str] = None

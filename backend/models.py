@@ -37,6 +37,7 @@ class Plant(Base):
     image_url = Column(Text)
     health = Column(String(50))
     notes = Column(Text)
+    date_created = Column(Date)
     
     # Care Needs
     light_needs = Column(String(255))
@@ -53,6 +54,7 @@ class Plant(Base):
     date_last_fertilized = Column(Date)
     fertilizer_frequency = Column(Integer) # days
     date_next_fertilized = Column(Date)
+
 
     # This links the relationship back to the User class
     owner = relationship("User", back_populates="user_plants")

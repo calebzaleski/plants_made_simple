@@ -240,6 +240,8 @@ def create_plant(data: schemas.PlantCreate, user: str = Depends(security.get_use
             new_plant.date_next_pot = today + timedelta(days=new_plant.pot_frequency)
 
         username.plants += 1
+        new_plant.date_created = date.today()
+
         session.add(new_plant)
         session.commit()
         
@@ -407,7 +409,7 @@ def pot_plant(plant_id: int, user: str = Depends(security.get_user)):
 def all_plants(user: str = Depends(security.get_user)):
     session = Session()
     try:
-        plants = session.query(models.Plant).filter_by(username=user).order_by(models.Plant.date_acquired).all()
+        plants = session.query(models.Plant).filter_by(username=user).order_by(models.Plant.date_created).all()
         logger.info(f"Successfully fetched {len(plants)} plants")
         return plants
     except SQLAlchemyError as e:
@@ -421,7 +423,7 @@ def all_plants(user: str = Depends(security.get_user)):
 def get_plant(plant_id: int, user: str = Depends(security.get_user)):
     session = Session()
     try:
-        plant = session.query(models.Plant).filter_by(plant_id=plant_id, username=user).order_by(models.Plant.date_acquired).first()
+        plant = session.query(models.Plant).filter_by(plant_id=plant_id, username=user).order_by(models.Plant.date_created).first()
         logger.info(f"Successfully fetched plant: {plant_id}")
         if not plant:
             raise fastapi.HTTPException(status_code=404, detail="Plant not found")
